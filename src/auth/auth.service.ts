@@ -1,11 +1,50 @@
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { DbService } from 'src/db/db.service'
+import { SignInRequest, SignUpRequest } from 'src/dto'
+import * as argon2 from 'argon2'
+import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library'
 
 @Injectable()
 export class AuthService {
-    private db: DbService
+    @Inject(DbService)
+    private readonly db: DbService
 
-    signup() { }
+    async signup(dto: SignUpRequest) {
+        try {
+            const hash = await argon2.hash(dto.password)
+            const user = await this.db.user.create({
+                data: {
+                    firstName: dto.firstName,
+                    lastName: dto.lastName,
+                    email: dto.email,
+                    password: hash,
+                    role: dto.role,
+                }
+            })
+            const { password, ...userWithoutPassword } = user
+            return userWithoutPassword
+        } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002')
+                throw new ForbiddenException('Email already in use')
+            throw error
+        }
+    }
 
-    signin() { }
+    async signin(dto: SignInRequest) {
+        const user = await this.db.user.findUnique({
+            where: {
+                email: dto.email,
+            }
+        })
+
+        if (!user)
+            throw new ForbiddenException('Invalid credentials')
+
+        const pwMatches = await argon2.verify(user.password, dto.password)
+        if (!pwMatches)
+            throw new ForbiddenException('Invalid credentials')
+
+        const { password, ...userWithoutPassword } = user
+        return userWithoutPassword
+    }
 }
