@@ -3,11 +3,17 @@ import { DbService } from 'src/db/db.service'
 import { SignInRequest, SignUpRequest } from 'src/dto'
 import * as argon2 from 'argon2'
 import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library'
+import { JwtService } from '@nestjs/jwt'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class AuthService {
     @Inject(DbService)
     private readonly db: DbService
+    @Inject(JwtService)
+    private readonly jwtService: JwtService
+    @Inject(ConfigService)
+    private readonly configService: ConfigService
 
     async signup(dto: SignUpRequest) {
         try {
@@ -22,7 +28,7 @@ export class AuthService {
                 }
             })
             const { password, ...userWithoutPassword } = user
-            return userWithoutPassword
+            return await this.generateJwt(user.id, user.email);
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002')
                 throw new ForbiddenException('Email already in use')
@@ -45,6 +51,17 @@ export class AuthService {
             throw new ForbiddenException('Invalid credentials')
 
         const { password, ...userWithoutPassword } = user
-        return userWithoutPassword
+        return await this.generateJwt(user.id, user.email);
+    }
+
+    async generateJwt(userId: string, email: string): Promise<{ access_token: string }> {
+        const payload = { sub: userId, email }
+        const token = await this.jwtService.signAsync(payload, {
+            expiresIn: '15m',
+            secret: this.configService.get('JWT_SECRET'),
+        })
+        return {
+            access_token: token,
+        }
     }
 }
