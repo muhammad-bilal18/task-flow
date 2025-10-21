@@ -1,19 +1,20 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { DbService } from 'src/db/db.service'
-import { SignInRequest, SignUpRequest } from 'src/dto'
+import { SignInRequest, SignUpRequest } from 'src/auth/dto'
 import * as argon2 from 'argon2'
 import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import { Role } from 'generated/prisma'
 
 @Injectable()
 export class AuthService {
     @Inject(DbService)
-    private readonly db: DbService
+    private db: DbService
     @Inject(JwtService)
-    private readonly jwtService: JwtService
+    private jwtService: JwtService
     @Inject(ConfigService)
-    private readonly configService: ConfigService
+    private configService: ConfigService
 
     async signup(dto: SignUpRequest) {
         try {
@@ -24,10 +25,10 @@ export class AuthService {
                     lastName: dto.lastName,
                     email: dto.email,
                     password: hash,
-                    role: dto.role,
+                    role: Role.MEMBER,
                 }
             })
-            const { password, ...userWithoutPassword } = user
+
             return await this.generateJwt(user.id, user.email);
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002')
@@ -50,7 +51,6 @@ export class AuthService {
         if (!pwMatches)
             throw new ForbiddenException('Invalid credentials')
 
-        const { password, ...userWithoutPassword } = user
         return await this.generateJwt(user.id, user.email);
     }
 
