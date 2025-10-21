@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaClient } from 'generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class DbService extends PrismaClient {
@@ -9,8 +9,17 @@ export class DbService extends PrismaClient {
             datasources: {
                 db: {
                     url: config.get('DATABASE_URL'),
-                }
-            }
+                },
+            },
         });
+    }
+
+    cleanDb() {
+        return this.$transaction([
+            this.comment.deleteMany(),
+            this.task.deleteMany(),
+            this.project.deleteMany(),
+            this.user.deleteMany(),
+        ]);
     }
 }

@@ -14,5 +14,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  postgres-test:
+    image: postgres:latest
+    container_name: postgres_db_test
+    restart: always
+    environment:
+      POSTGRES_USER: bilal
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: task_flow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/test_data
+
 volumes:
   postgres_data:
