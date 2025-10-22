@@ -9,10 +9,10 @@ import {
     Patch,
 } from '@nestjs/common';
 import { Role, type User } from '@prisma/client';
-import { GetUser } from 'src/auth/decorator';
 import { EditUserRequest } from './dto';
 import { UserService } from './user.service';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Controller('users')
 export class UserController {
@@ -20,12 +20,12 @@ export class UserController {
     private userService: UserService;
 
     @Get('me')
-    getMe(@GetUser() user: User) {
+    getMe(@CurrentUser() user: User) {
         return { user };
     }
 
     @Patch(':id')
-    editUser(@Body() body: EditUserRequest, @GetUser() user: User, @Param('id') id: string) {
+    editUser(@Body() body: EditUserRequest, @CurrentUser() user: User, @Param('id') id: string) {
         return this.userService.update(id, body, user.id, user.role);
     }
 
@@ -42,7 +42,7 @@ export class UserController {
     }
 
     @Get(':id/projects')
-    getUserProjects(@Param('id') id: string, @GetUser() user: User) {
+    getUserProjects(@Param('id') id: string, @CurrentUser() user: User) {
         if (user.id !== id && user.role !== Role.ADMIN) {
             throw new ForbiddenException('You can only fetch your own projects');
         }
@@ -50,7 +50,7 @@ export class UserController {
     }
 
     @Get(':id/tasks')
-    getUserTasks(@Param('id') id: string, @GetUser() user: User) {
+    getUserTasks(@Param('id') id: string, @CurrentUser() user: User) {
         if (user.id !== id && user.role !== Role.ADMIN) {
             throw new ForbiddenException('You can only fetch your own tasks');
         }
@@ -58,7 +58,7 @@ export class UserController {
     }
 
     @Get(':id/stats')
-    getUserStats(@Param('id') id: string, @GetUser() user: User) {
+    getUserStats(@Param('id') id: string, @CurrentUser() user: User) {
         if (user.id !== id && user.role !== Role.ADMIN) {
             throw new ForbiddenException('You can only fetch your own stats');
         }
