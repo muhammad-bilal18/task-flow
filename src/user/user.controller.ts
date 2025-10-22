@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Inject, Param, Patch } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    ForbiddenException,
+    Get,
+    Inject,
+    Param,
+    Patch,
+} from '@nestjs/common';
 import { Role, type User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorator';
 import { EditUserRequest } from './dto';
@@ -30,5 +39,29 @@ export class UserController {
     @Roles(Role.ADMIN)
     promoteToAdmin(@Param('id') id: string) {
         return this.userService.promoteToAdmin(id);
+    }
+
+    @Get(':id/projects')
+    getUserProjects(@Param('id') id: string, @GetUser() user: User) {
+        if (user.id !== id && user.role !== Role.ADMIN) {
+            throw new ForbiddenException('You can only fetch your own projects');
+        }
+        return this.userService.getUserProjects(id);
+    }
+
+    @Get(':id/tasks')
+    getUserTasks(@Param('id') id: string, @GetUser() user: User) {
+        if (user.id !== id && user.role !== Role.ADMIN) {
+            throw new ForbiddenException('You can only fetch your own tasks');
+        }
+        return this.userService.getUserTasks(id);
+    }
+
+    @Get(':id/stats')
+    getUserStats(@Param('id') id: string, @GetUser() user: User) {
+        if (user.id !== id && user.role !== Role.ADMIN) {
+            throw new ForbiddenException('You can only fetch your own stats');
+        }
+        return this.userService.getUserStats(id);
     }
 }
