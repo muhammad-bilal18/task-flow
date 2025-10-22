@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as pactum from 'pactum';
 import { AppModule } from './../src/app.module';
-import { DbService } from 'src/db/db.service';
-import { SignUpRequest } from 'src/auth/dto';
-import { EditUserRequest } from 'src/user/dto';
+import { DbService } from '../src/db/db.service';
+import { EditUserRequest } from '../src/user/dto';
+import { SignUpRequest } from '../src/auth/dto';
 
 describe('AppModule (e2e)', () => {
     let app: INestApplication;
