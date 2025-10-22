@@ -1,4 +1,11 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    ConflictException,
+    ForbiddenException,
+    Inject,
+    Injectable,
+    NotFoundException,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { SignInRequest, SignUpRequest } from 'src/auth/dto';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
@@ -17,24 +24,25 @@ export class AuthService {
     private configService: ConfigService;
 
     async signup(dto: SignUpRequest) {
-        try {
-            const hash = await argon2.hash(dto.password);
-            const user = await this.db.user.create({
-                data: {
-                    firstName: dto.firstName,
-                    lastName: dto.lastName,
-                    email: dto.email,
-                    password: hash,
-                    role: Role.MEMBER,
-                },
-            });
+        const existingUser = await this.db.user.findUnique({
+            where: { email: dto.email },
+        });
 
-            return await this.generateJwt(user.id, user.email);
-        } catch (error) {
-            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002')
-                throw new ForbiddenException('Email already in use');
-            throw error;
+        if (existingUser) {
+            throw new ConflictException('User with this email already exists');
         }
+        const hash = await argon2.hash(dto.password);
+        const user = await this.db.user.create({
+            data: {
+                firstName: dto.firstName,
+                lastName: dto.lastName,
+                email: dto.email,
+                password: hash,
+                role: Role.MEMBER,
+            },
+        });
+
+        return await this.generateJwt(user.id, user.email);
     }
 
     async signin(dto: SignInRequest) {
@@ -43,10 +51,10 @@ export class AuthService {
                 email: dto.email,
             },
         });
-        if (!user) throw new ForbiddenException('Invalid credentials');
+        if (!user) throw new UnauthorizedException('Invalid credentials');
 
         const pwMatches = await argon2.verify(user.password, dto.password);
-        if (!pwMatches) throw new ForbiddenException('Invalid credentials');
+        if (!pwMatches) throw new UnauthorizedException('Invalid credentials');
 
         return await this.generateJwt(user.id, user.email);
     }
@@ -86,5 +94,52 @@ export class AuthService {
         });
 
         return { message: 'Password changed successfully' };
+    }
+
+    async validateUser(userId: string) {
+        const user = await this.db.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        return user;
+    }
+
+    /**
+     * Refresh token (optional - if you want to implement refresh tokens)
+     */
+    async refreshToken(userId: string) {
+        const user = await this.db.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        const token = this.generateJwt(user.id, user.email);
+
+        return {
+            access_token: token,
+        };
+    }
+
+    async verifyToken(token: string) {
+        try {
+            const payload = this.jwtService.verify(token);
+            return payload;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid token');
+        }
     }
 }
