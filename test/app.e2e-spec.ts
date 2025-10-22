@@ -4,6 +4,7 @@ import * as pactum from 'pactum';
 import { AppModule } from './../src/app.module';
 import { DbService } from 'src/db/db.service';
 import { SignUpRequest } from 'src/auth/dto';
+import { EditUserRequest } from 'src/user/dto';
 
 describe('AppModule (e2e)', () => {
     let app: INestApplication;
@@ -22,9 +23,9 @@ describe('AppModule (e2e)', () => {
             }),
         );
         await app.init();
-        await app.listen(3000);
+        await app.listen(3001);
         await db.cleanDb();
-        pactum.request.setBaseUrl('http://localhost:3000');
+        pactum.request.setBaseUrl('http://localhost:3001');
     });
 
     afterAll(async () => {
@@ -198,6 +199,163 @@ describe('AppModule (e2e)', () => {
                     .get('/users/me')
                     .withHeaders({ Authorization: '' })
                     .expectStatus(401);
+            });
+        });
+
+        describe('PATCH /users', () => {
+            it('should update user with valid access token and all fields', async () => {
+                const editUserDto = {
+                    firstName: 'Test',
+                    lastName: 'User',
+                    email: 'test.user@gmail.com',
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(200)
+                    .expectBodyContains(editUserDto.firstName)
+                    .expectBodyContains(editUserDto.lastName)
+                    .expectBodyContains(editUserDto.email);
+            });
+
+            it('should update user with only firstName', async () => {
+                const editUserDto = {
+                    firstName: 'UpdatedFirst',
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(200)
+                    .expectBodyContains(editUserDto.firstName);
+            });
+
+            it('should update user with only email', async () => {
+                const editUserDto = {
+                    email: 'updated.email@gmail.com',
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(200)
+                    .expectBodyContains(editUserDto.email);
+            });
+
+            it('should update user with empty payload', async () => {
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson({})
+                    .expectStatus(200);
+            });
+
+            it('should fail to update user without access token', async () => {
+                const editUserDto = {
+                    firstName: 'Test',
+                    email: 'test@test.com',
+                };
+                await pactum.spec().patch('/users').withJson(editUserDto).expectStatus(401);
+            });
+
+            it('should fail to update user with invalid email', async () => {
+                const editUserDto = {
+                    email: 'invalid-email',
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(400)
+                    .expectBodyContains('email must be an email');
+            });
+
+            it('should fail to update user with non-string firstName', async () => {
+                const editUserDto = {
+                    firstName: 123,
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(400)
+                    .expectBodyContains('firstName must be a string');
+            });
+
+            it('should fail to update user with non-string lastName', async () => {
+                const editUserDto = {
+                    lastName: 123,
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(400)
+                    .expectBodyContains('lastName must be a string');
+            });
+
+            it('should update user with special characters in names', async () => {
+                const editUserDto = {
+                    firstName: 'Test-User',
+                    lastName: "O'Connor",
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(200)
+                    .expectBodyContains(editUserDto.firstName)
+                    .expectBodyContains(editUserDto.lastName);
+            });
+
+            it('should fail to update user with existing email', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signup')
+                    .withBody({
+                        firstName: 'Jane',
+                        lastName: 'Doe',
+                        email: 'jane.doe1@gmail.com',
+                        password: 'changeme',
+                    })
+                    .expectStatus(201);
+
+                const editUserDto = {
+                    email: 'jane.doe1@gmail.com',
+                };
+                await pactum
+                    .spec()
+                    .patch('/users')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .withJson(editUserDto)
+                    .expectStatus(403);
             });
         });
     });
