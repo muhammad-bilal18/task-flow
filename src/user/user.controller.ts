@@ -1,11 +1,10 @@
-import { Body, Controller, Get, Inject, Patch, UseGuards } from '@nestjs/common';
-import type { User } from '@prisma/client';
+import { Body, Controller, Delete, Get, Inject, Param, Patch, UseGuards } from '@nestjs/common';
+import { Role, type User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorator';
-import { JwtGuard } from 'src/auth/guard';
 import { EditUserRequest } from './dto';
 import { UserService } from './user.service';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
-@UseGuards(JwtGuard)
 @Controller('users')
 export class UserController {
     @Inject(UserService)
@@ -16,8 +15,14 @@ export class UserController {
         return { user };
     }
 
-    @Patch()
-    editUser(@GetUser('id') userId: string, @Body() body: EditUserRequest) {
-        return this.userService.editUser(userId, body);
+    @Patch(':id')
+    editUser(@Body() body: EditUserRequest, @GetUser() user: User, @Param('id') id: string) {
+        return this.userService.update(id, body, user.id, user.role);
+    }
+
+    @Delete(':id')
+    @Roles(Role.ADMIN)
+    deleteUser(@GetUser() user: User, @Param('id') id: string) {
+        return this.userService.delete(id);
     }
 }
