@@ -51,7 +51,7 @@ describe('AppModule (e2e)', () => {
             });
 
             it('should fail to register with an existing email', async () => {
-                await pactum.spec().post('/auth/signup').withJson(signupDto).expectStatus(403);
+                await pactum.spec().post('/auth/signup').withJson(signupDto).expectStatus(409);
             });
 
             it('should fail to register with missing firstName', async () => {
@@ -139,7 +139,7 @@ describe('AppModule (e2e)', () => {
                         email: signupDto.email,
                         password: 'wrongpassword',
                     })
-                    .expectStatus(403);
+                    .expectStatus(401);
             });
 
             it('should fail to sign in with missing email', async () => {
