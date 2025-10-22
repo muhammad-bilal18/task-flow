@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Patch } from '@nestjs/common';
 import { Role, type User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorator';
 import { EditUserRequest } from './dto';
@@ -22,7 +22,13 @@ export class UserController {
 
     @Delete(':id')
     @Roles(Role.ADMIN)
-    deleteUser(@GetUser() user: User, @Param('id') id: string) {
+    deleteUser(@Param('id') id: string) {
         return this.userService.delete(id);
+    }
+
+    @Patch(':id/promote-to-admin')
+    @Roles(Role.ADMIN)
+    promoteToAdmin(@Param('id') id: string) {
+        return this.userService.promoteToAdmin(id);
     }
 }

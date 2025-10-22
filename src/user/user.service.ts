@@ -109,22 +109,16 @@ export class UserService {
         });
     }
 
-    async editUser(userId: string, editUserDto: EditUserRequest) {
-        if (editUserDto.email) {
-            const user = await this.db.user.findUnique({ where: { email: editUserDto.email } });
-            if (user && user.id !== userId) {
-                throw new ForbiddenException('Email already in use');
-            }
-        }
+    async promoteToAdmin(userId: string) {
         const updatedUser = await this.db.user.update({
             where: {
                 id: userId,
             },
-            data: { ...editUserDto },
+            data: { role: Role.ADMIN },
         });
 
         const { password, ...userWithoutPassword } = updatedUser;
-        return userWithoutPassword;
+        return { message: 'User promoted to admin successfully', user: userWithoutPassword };
     }
 
     async delete(userId: string) {

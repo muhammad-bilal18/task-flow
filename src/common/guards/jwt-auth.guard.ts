@@ -23,12 +23,4 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         // For protected routes, validate JWT
         return super.canActivate(context);
     }
-
-    handleRequest(err: any, user: any, info: any) {
-        // Handle JWT errors
-        if (err || !user) {
-            throw err || new UnauthorizedException('Invalid or expired token');
-        }
-        return user;
-    }
 }
