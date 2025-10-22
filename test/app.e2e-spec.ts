@@ -1,14 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
+import * as pactum from 'pactum';
 import { AppModule } from './../src/app.module';
 import { DbService } from 'src/db/db.service';
-import * as pactum from 'pactum';
 import { SignUpRequest } from 'src/auth/dto';
 
-describe('AppController (e2e)', () => {
-    let app: INestApplication<App>;
+describe('AppModule (e2e)', () => {
+    let app: INestApplication;
     let db: DbService;
 
     beforeAll(async () => {
@@ -24,14 +22,16 @@ describe('AppController (e2e)', () => {
             }),
         );
         await app.init();
+        await app.listen(3000);
         await db.cleanDb();
+        pactum.request.setBaseUrl('http://localhost:3000');
     });
 
     afterAll(async () => {
         await app.close();
     });
 
-    describe('Auth', () => {
+    describe('Auth API', () => {
         const signupDto: SignUpRequest = {
             firstName: 'John',
             lastName: 'Doe',
@@ -39,47 +39,165 @@ describe('AppController (e2e)', () => {
             password: 'changeme',
         };
 
-        describe('Signup', () => {
-            it('should signup a new user', async () => {
-                return request(app.getHttpServer())
+        describe('POST /auth/signup', () => {
+            it('should register a new user successfully', async () => {
+                await pactum
+                    .spec()
                     .post('/auth/signup')
-                    .send(signupDto)
-                    .expect(201)
-                    .then((res) => {
-                        expect(res.body).toHaveProperty('access_token');
-                    });
+                    .withJson(signupDto)
+                    .expectStatus(201)
+                    .expectBodyContains('access_token');
             });
 
-            it('should not signup with existing email', async () => {
-                return request(app.getHttpServer())
+            it('should fail to register with an existing email', async () => {
+                await pactum.spec().post('/auth/signup').withJson(signupDto).expectStatus(403);
+            });
+
+            it('should fail to register with missing firstName', async () => {
+                await pactum
+                    .spec()
                     .post('/auth/signup')
-                    .send(signupDto)
-                    .expect(403);
+                    .withJson({
+                        ...signupDto,
+                        firstName: '',
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('firstName should not be empty');
+            });
+
+            it('should fail to register with invalid email', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signup')
+                    .withJson({
+                        ...signupDto,
+                        email: 'invalid-email',
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('email must be an email');
+            });
+
+            it('should fail to register with missing password', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signup')
+                    .withJson({
+                        ...signupDto,
+                        password: '',
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('password should not be empty');
+            });
+
+            it('should fail to register with non-string lastName', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signup')
+                    .withJson({
+                        ...signupDto,
+                        lastName: 123,
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('lastName must be a string');
+            });
+
+            it('should register with special characters in names', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signup')
+                    .withJson({
+                        ...signupDto,
+                        firstName: 'John-Doe',
+                        lastName: "O'Connor",
+                        email: 'john.oconnor@gmail.com',
+                    })
+                    .expectStatus(201)
+                    .expectBodyContains('access_token');
             });
         });
 
-        describe('Signin', () => {
-            it('should signin an existing user', async () => {
-                return request(app.getHttpServer())
+        describe('POST /auth/signin', () => {
+            it('should sign in an existing user successfully', async () => {
+                await pactum
+                    .spec()
                     .post('/auth/signin')
-                    .send({
+                    .withJson({
                         email: signupDto.email,
                         password: signupDto.password,
                     })
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body).toHaveProperty('access_token');
-                    });
+                    .expectStatus(200)
+                    .expectBodyContains('access_token')
+                    .stores('userAccessToken', 'access_token');
             });
 
-            it('should not signin with wrong credentials', async () => {
-                return request(app.getHttpServer())
+            it('should fail to sign in with incorrect credentials', async () => {
+                await pactum
+                    .spec()
                     .post('/auth/signin')
-                    .send({
+                    .withJson({
                         email: signupDto.email,
                         password: 'wrongpassword',
                     })
-                    .expect(403);
+                    .expectStatus(403);
+            });
+
+            it('should fail to sign in with missing email', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signin')
+                    .withJson({
+                        email: '',
+                        password: signupDto.password,
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('email should not be empty');
+            });
+
+            it('should fail to sign in with invalid email', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signin')
+                    .withJson({
+                        email: 'invalid-email',
+                        password: signupDto.password,
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('email must be an email');
+            });
+
+            it('should fail to sign in with missing password', async () => {
+                await pactum
+                    .spec()
+                    .post('/auth/signin')
+                    .withJson({
+                        email: signupDto.email,
+                        password: '',
+                    })
+                    .expectStatus(400)
+                    .expectBodyContains('password should not be empty');
+            });
+        });
+    });
+
+    describe('User API', () => {
+        describe('GET /users/me', () => {
+            it('should retrieve current user with valid access token', async () => {
+                await pactum
+                    .spec()
+                    .get('/users/me')
+                    .withHeaders({
+                        Authorization: 'Bearer $S{userAccessToken}',
+                    })
+                    .expectStatus(200)
+                    .expectBodyContains('user');
+            });
+
+            it('should fail to retrieve current user without access token', async () => {
+                await pactum
+                    .spec()
+                    .get('/users/me')
+                    .withHeaders({ Authorization: '' })
+                    .expectStatus(401);
             });
         });
     });

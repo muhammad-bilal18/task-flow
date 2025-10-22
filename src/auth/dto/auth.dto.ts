@@ -1,30 +1,29 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator"
-import { Role } from "generated/prisma"
+import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class SignUpRequest {
     @IsString()
     @IsNotEmpty()
-    firstName: string
+    firstName: string;
 
     @IsString()
     @IsNotEmpty()
-    lastName: string
+    lastName: string;
 
     @IsEmail()
     @IsNotEmpty()
-    email: string
+    email: string;
 
     @IsString()
     @IsNotEmpty()
-    password: string
+    password: string;
 }
 
 export class SignInRequest {
     @IsEmail()
     @IsNotEmpty()
-    email: string
+    email: string;
 
     @IsString()
     @IsNotEmpty()
-    password: string
+    password: string;
 }
