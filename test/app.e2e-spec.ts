@@ -45,20 +45,20 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson(signupDto)
+                    .withBody(signupDto)
                     .expectStatus(201)
                     .expectBodyContains('access_token');
             });
 
             it('should fail to register with an existing email', async () => {
-                await pactum.spec().post('/auth/signup').withJson(signupDto).expectStatus(409);
+                await pactum.spec().post('/auth/signup').withBody(signupDto).expectStatus(409);
             });
 
             it('should fail to register with missing firstName', async () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson({
+                    .withBody({
                         ...signupDto,
                         firstName: '',
                     })
@@ -70,7 +70,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson({
+                    .withBody({
                         ...signupDto,
                         email: 'invalid-email',
                     })
@@ -82,7 +82,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson({
+                    .withBody({
                         ...signupDto,
                         password: '',
                     })
@@ -94,7 +94,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson({
+                    .withBody({
                         ...signupDto,
                         lastName: 123,
                     })
@@ -106,7 +106,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signup')
-                    .withJson({
+                    .withBody({
                         ...signupDto,
                         firstName: 'John-Doe',
                         lastName: "O'Connor",
@@ -122,7 +122,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signin')
-                    .withJson({
+                    .withBody({
                         email: signupDto.email,
                         password: signupDto.password,
                     })
@@ -135,7 +135,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signin')
-                    .withJson({
+                    .withBody({
                         email: signupDto.email,
                         password: 'wrongpassword',
                     })
@@ -146,7 +146,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signin')
-                    .withJson({
+                    .withBody({
                         email: '',
                         password: signupDto.password,
                     })
@@ -158,7 +158,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signin')
-                    .withJson({
+                    .withBody({
                         email: 'invalid-email',
                         password: signupDto.password,
                     })
@@ -170,7 +170,7 @@ describe('AppModule (e2e)', () => {
                 await pactum
                     .spec()
                     .post('/auth/signin')
-                    .withJson({
+                    .withBody({
                         email: signupDto.email,
                         password: '',
                     })
@@ -204,7 +204,7 @@ describe('AppModule (e2e)', () => {
 
         describe('PATCH /users', () => {
             it('should update user with valid access token and all fields', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     firstName: 'Test',
                     lastName: 'User',
                     email: 'test.user@gmail.com',
@@ -215,7 +215,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(200)
                     .expectBodyContains(editUserDto.firstName)
                     .expectBodyContains(editUserDto.lastName)
@@ -223,7 +223,7 @@ describe('AppModule (e2e)', () => {
             });
 
             it('should update user with only firstName', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     firstName: 'UpdatedFirst',
                 };
                 await pactum
@@ -232,13 +232,13 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(200)
                     .expectBodyContains(editUserDto.firstName);
             });
 
             it('should update user with only email', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     email: 'updated.email@gmail.com',
                 };
                 await pactum
@@ -247,7 +247,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(200)
                     .expectBodyContains(editUserDto.email);
             });
@@ -259,20 +259,20 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson({})
+                    .withBody({})
                     .expectStatus(200);
             });
 
             it('should fail to update user without access token', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     firstName: 'Test',
                     email: 'test@test.com',
                 };
-                await pactum.spec().patch('/users').withJson(editUserDto).expectStatus(401);
+                await pactum.spec().patch('/users').withBody(editUserDto).expectStatus(401);
             });
 
             it('should fail to update user with invalid email', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     email: 'invalid-email',
                 };
                 await pactum
@@ -281,7 +281,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(400)
                     .expectBodyContains('email must be an email');
             });
@@ -296,7 +296,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(400)
                     .expectBodyContains('firstName must be a string');
             });
@@ -311,13 +311,13 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(400)
                     .expectBodyContains('lastName must be a string');
             });
 
             it('should update user with special characters in names', async () => {
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     firstName: 'Test-User',
                     lastName: "O'Connor",
                 };
@@ -327,7 +327,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(200)
                     .expectBodyContains(editUserDto.firstName)
                     .expectBodyContains(editUserDto.lastName);
@@ -345,7 +345,7 @@ describe('AppModule (e2e)', () => {
                     })
                     .expectStatus(201);
 
-                const editUserDto = {
+                const editUserDto: EditUserRequest = {
                     email: 'jane.doe1@gmail.com',
                 };
                 await pactum
@@ -354,7 +354,7 @@ describe('AppModule (e2e)', () => {
                     .withHeaders({
                         Authorization: 'Bearer $S{userAccessToken}',
                     })
-                    .withJson(editUserDto)
+                    .withBody(editUserDto)
                     .expectStatus(403);
             });
         });
