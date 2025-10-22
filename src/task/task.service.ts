@@ -3,7 +3,7 @@ import { Role, TaskStatus } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 
 @Injectable()
-export class TasksService {
+export class TaskService {
     @Inject(DbService)
     private db: DbService;
 

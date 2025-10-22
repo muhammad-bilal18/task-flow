@@ -3,7 +3,7 @@ import { Role } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 
 @Injectable()
-export class CommentsService {
+export class CommentService {
     @Inject(DbService)
     private db: DbService;
 
