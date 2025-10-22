@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SignInRequest, SignUpRequest } from 'src/auth/dto';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
@@ -60,5 +60,31 @@ export class AuthService {
         return {
             access_token: token,
         };
+    }
+
+    async changePassword(userId: string, oldPassword: string, newPassword: string) {
+        const user = await this.db.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Verify old password
+        const isPasswordValid = await argon2.verify(user.password, oldPassword);
+        if (!isPasswordValid) {
+            throw new ForbiddenException('Current password is incorrect');
+        }
+
+        // Hash new password
+        const hashedPassword = await argon2.hash(newPassword);
+
+        await this.db.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword },
+        });
+
+        return { message: 'Password changed successfully' };
     }
 }
