@@ -19,9 +19,23 @@ export class UserController {
     @Inject(UserService)
     private userService: UserService;
 
+    @Get()
+    @Roles(Role.ADMIN)
+    getAllUsers() {
+        return this.userService.findAll();
+    }
+
     @Get('me')
     getMe(@CurrentUser() user: User) {
         return { user };
+    }
+
+    @Get(':id')
+    getUserById(@Param('id') id: string, @CurrentUser() user: User) {
+        if (user.id !== id && user.role !== Role.ADMIN) {
+            throw new ForbiddenException('You can only fetch your own profile');
+        }
+        return this.userService.findById(id);
     }
 
     @Patch(':id')
